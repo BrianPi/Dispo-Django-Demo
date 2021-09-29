@@ -7,6 +7,9 @@ from django.core import serializers
 from django.db import IntegrityError
 from django.db.models import Count
 
+def get_user(request):
+    return User.objects.get(id=request.data["user"])
+
 @api_view(["POST"])
 def create_user(request):
     try:
@@ -24,7 +27,7 @@ def list_top_users(request):
 @api_view(["POST"])
 def follow_user(request):
     try:
-        user=User.objects.get(id=request.data["user"])
+        user=get_user(request)
     except KeyError:
         return Response(status=400)
     try:
@@ -36,7 +39,7 @@ def follow_user(request):
 @api_view(["POST"])
 def create_post(request):
     try:
-        Post.objects.create(user=request.data["user"],body=request.data["body"])
+        Post.objects.create(user=get_user(request),body=request.data["body"])
     except KeyError:
         return Response(status=400)
     return Response(status=201)
@@ -51,9 +54,11 @@ def individual_post(request, post_id):
         return Response(PostSerializer(post).data)
     elif request.method=="PUT":
         try:
-            PostLike.objects.create(user=request.data["user"],post=post_id)
+            PostLike.objects.create(user=get_user(request),post=post_id)
         except IntegrityError:
-            PostLike.objects.get(user=request.data["user"],post=post_id).delete()
+            PostLike.objects.get(user=get_user(request),post=post_id).delete()
+        except KeyError:
+            return Response(status=400)
         return Response(status=200)
     
 @api_view(["GET"])
